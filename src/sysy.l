@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <string>
 #include "sysy.tab.hpp"
+#include "AST.h"
 
 using namespace std;
 
