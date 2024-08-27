@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 #include "AST.h"
-
+#include "koopa.h"
 using namespace std;
 
 // 声明 lexer 的输入, 以及 parser 函数
