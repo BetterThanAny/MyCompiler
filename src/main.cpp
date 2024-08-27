@@ -35,5 +35,7 @@ int main(int argc, const char *argv[]) {
   // dump AST
   ast->Dump();
   cout << endl;
+  ast->DumpIR();  // dump IR
+  cout << endl;
   return 0;
 }

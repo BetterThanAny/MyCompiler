@@ -1,6 +1,5 @@
 #pragma once
 #include<memory>
-// #include<vector>
 #include<string>
 #include<iostream>
 
@@ -9,7 +8,8 @@ class BaseAST {
   public:
     virtual ~BaseAST() = default;
 
-    virtual  void Dump() const = 0;
+    virtual void Dump() const = 0;
+    virtual void DumpIR() const = 0;
 };
 
 // CompUnit 是 BaseAST
@@ -22,6 +22,9 @@ class CompUnitAST : public BaseAST {
       std::cout << "CompUnitAST {";
       func_def->Dump();
       std::cout << "}";
+    }
+    void DumpIR() const override {
+      func_def->DumpIR();
     }
 };
 
@@ -39,6 +42,12 @@ class FuncDefAST : public BaseAST {
       block->Dump();
       std::cout << "}";
     }
+     void DumpIR() const override {
+      std::cout << "fun ";
+      std::cout <<"@" << ident <<"(): ";
+      func_type->DumpIR();
+      block->DumpIR();
+    }
 };
 
 class FuncTypeAST : public BaseAST {
@@ -49,6 +58,9 @@ class FuncTypeAST : public BaseAST {
       std::cout << "FuncTypeAST {";
       std::cout << funcT_name;
       std::cout << "}";
+    }
+    void DumpIR() const override {
+      std::cout << "i32" << " ";
     }
 };
 
@@ -61,6 +73,9 @@ class BlockAST : public BaseAST {
       stmt->Dump();
       std::cout << "}";
     }
+    void DumpIR() const override {
+      stmt->DumpIR();
+    }
 };
 
 class StmtAST : public BaseAST {
@@ -71,5 +86,8 @@ class StmtAST : public BaseAST {
       std::cout << "StmtAST {";
       std::cout << *number;
       std::cout << "}";
+    }
+    void DumpIR() const override {
+      std::cout << *number << std::endl;
     }
 };
