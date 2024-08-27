@@ -43,10 +43,11 @@ class FuncDefAST : public BaseAST {
       std::cout << "}";
     }
      void DumpIR() const override {
-      std::cout << "fun ";
-      std::cout <<"@" << ident <<"(): ";
+      std::cout << "fun @" << ident <<"(): ";
       func_type->DumpIR();
+      std::cout << "{" << std::endl;
       block->DumpIR();
+      std::cout << "}" << std::endl;
     }
 };
 
@@ -74,6 +75,8 @@ class BlockAST : public BaseAST {
       std::cout << "}";
     }
     void DumpIR() const override {
+      std::cout << "%entry:" << std::endl; // %e 会变蓝，不行的话分开输出
+      std::cout << "ret ";
       stmt->DumpIR();
     }
 };
