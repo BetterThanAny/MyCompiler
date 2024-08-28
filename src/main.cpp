@@ -31,11 +31,12 @@ int main(int argc, const char *argv[]) {
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
   assert(!ret);
-    freopen(output, "w", stdout);
+  freopen(output, "w", stdout);
   // dump AST
   //ast->Dump();
   //cout << endl;
-  ast->DumpIR();  // dump IR
+  if (mode == "-koopa")ast->DumpIR();  // dump IR
+  else cout << "Unknown mode: " << endl;
   cout << endl;
   return 0;
 }
