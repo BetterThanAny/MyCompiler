@@ -43,6 +43,10 @@ class FuncDefAST : public BaseAST {
       std::cout << "}";
     }
      void DumpIR() const override {
+      if (ident != "main"){
+        std::cerr << "Error: only main function is supported" << std::endl;
+        exit(1);
+      }
       std::cout << "fun @" << ident <<"(): ";
       func_type->DumpIR();
       std::cout << "{" << std::endl;

@@ -31,10 +31,10 @@ int main(int argc, const char *argv[]) {
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
   assert(!ret);
-
+    freopen(output, "w", stdout);
   // dump AST
-  ast->Dump();
-  cout << endl;
+  //ast->Dump();
+  //cout << endl;
   ast->DumpIR();  // dump IR
   cout << endl;
   return 0;

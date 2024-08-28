@@ -54,8 +54,10 @@ fun @main(): i32 {
     ret 0
 }
 ```
-`Program` 应该用 `CompUnitAST` 定义。
-`Function` 用 `FuncDef` 定义，包括`{}`和外面的都应该属于它。
+
+## Lv1.5
+
+本地测试通过
 
 ## Lv 2.1
 引用`libkoopa`：
