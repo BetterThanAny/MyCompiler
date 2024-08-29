@@ -1,4 +1,5 @@
 *.DS_Store
-*.koopa
 /build
 /debug
+/.vscode
+/.md

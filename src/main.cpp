@@ -3,8 +3,12 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sstream>
+
 #include "AST.h"
 #include "koopa.h"
+#include "RISCV.h"
+
 using namespace std;
 
 // 声明 lexer 的输入, 以及 parser 函数
@@ -15,7 +19,14 @@ using namespace std;
 extern FILE *yyin;
 extern int yyparse(unique_ptr<BaseAST> &ast);
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char *argv[])
+{
+  // 不和 C 的 stdio 混用，提高IO效率
+  // ios::sync_with_stdio(false);
+  // 解除std::cin和std::cout之间的绑定，
+  // 从而避免每次读取输入前自动刷新输出缓冲区，以提高性能
+  // cin.tie(nullptr);
+
   // 解析命令行参数. 测试脚本/评测平台要求你的编译器能接收如下参数:
   // compiler 模式 输入文件 -o 输出文件
   assert(argc == 5);
@@ -31,12 +42,41 @@ int main(int argc, const char *argv[]) {
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
   assert(!ret);
-  freopen(output, "w", stdout);
   // dump AST
-  //ast->Dump();
-  //cout << endl;
-  if (mode == "-koopa")ast->DumpIR();  // dump IR
-  else cout << "Unknown mode: " << endl;
+  // ast->Dump();
+  // cout << endl;
+  if (string(mode) == "-koopa")
+  {
+    freopen(output, "w", stdout);
+    // 输出 koopa IR
+    ast->DumpIR();
+    cout << endl;
+    return 0;
+  }
+  else if (string(mode) == "-riscv")
+  {
+    // freopen("RISCV.txt", "w", stdout);
+    //  创建一个stringstream对象，用于存储输出
+    stringstream ss;
+    // 保存cout的当前缓冲区指针到coutBuf，以便恢复
+    streambuf *coutBuf = cout.rdbuf();
+    // 将cout的缓冲区指向ss的缓冲区，这样cout输出的内容就会存到ss中
+    cout.rdbuf(ss.rdbuf());
+    // 输出IR
+    ast->DumpIR();
+    // 从ss中读取字符串，存到IRstr中
+    string IRstr = ss.str();
+    // 获取c风格的字符串表示，存储在ir中
+    const char *ir = IRstr.data();
+    // 恢复cout的缓冲区指针
+    cout.rdbuf(coutBuf);
+    freopen(output, "w", stdout);
+    parse_string(ir);
+    cout << endl;
+    return 0;
+  }
+  else
+    cout << "Unknown mode: " << endl;
   cout << endl;
   return 0;
 }
