@@ -4,9 +4,8 @@
 #include <cassert>
 #include "koopa.h"
 
-// 访问对应类型指令的函数定义略
-// 视需求自行实现
-// ...
+
+// 用 visit 函数应该没有下面的快
 void parse_string(const char *str)
 {
   // 解析字符串 str, 得到 Koopa IR 程序

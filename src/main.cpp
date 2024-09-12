@@ -42,10 +42,15 @@ int main(int argc, const char *argv[])
   unique_ptr<BaseAST> ast;
   auto ret = yyparse(ast);
   assert(!ret);
-  // dump AST
-  // ast->Dump();
-  // cout << endl;
-  if (string(mode) == "-koopa")
+  if (string(mode) == "-test")
+  {
+    // freopen(output, "w", stdout);
+    // 输出 AST
+    ast->Dump();
+    cout << endl;
+    return 0;
+  }
+  else if (string(mode) == "-koopa")
   {
     freopen(output, "w", stdout);
     // 输出 koopa IR

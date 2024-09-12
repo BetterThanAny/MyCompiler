@@ -65,4 +65,86 @@ fun @main(): i32 {
 
 ## Lv 2
 
-版本1 本地测试通过，之后可以改一下Visit函数
+版本1 本地测试通过，之后可以改一下Visit函数(感觉没必要)
+
+## Lv3.1
+
+一元表达式
+
+```EBNF
+Stmt        ::= "return" Exp ";";
+
+Exp         ::= UnaryExp;
+PrimaryExp  ::= "(" Exp ")" | Number;
+Number      ::= INT_CONST;
+UnaryExp    ::= PrimaryExp | UnaryOp UnaryExp;
+UnaryOp     ::= "+" | "-" | "!";
+
+```
+分析一下如何处理整个程序
+```C++
+int main() {
+
+  return +(- -!6);  // 看起来像个颜文字
+
+}
+```
+按照 AST 划分：
+```EBNF
+CompUnitAST {
+	FuncDefAST {
+		FuncTypeAST {
+			INT:int
+		}
+		IDENT:main
+		'(' ')'
+		BlockAST {
+			'{'
+			StmtAST {
+				RETURN:return
+			  	ExpAST { 
+			  		UnaryExpAST {
+			  			UnaryOp:+
+			  			UnaryExp {
+			  				PrimaryExp {
+			  					'('
+			  					Exp ...
+			  					')'
+			  				}
+			  			}
+			  		
+			  		}
+				}
+				';'
+			}
+			'}'
+		}
+	} 
+}
+
+Exp +(- -!6)
+UnaryExp +(- -!6)
+UnaryExp (- -!6)
+PrimaryExp (- -!6)
+Exp - -!6
+UnaryExp - -!6
+UnaryExp  -!6
+UnaryExp !6
+UnaryExp 6
+PrimaryExp 6
+Number 6
+INT_CONST 6
+```
+
+```koopa
+
+fun @main(): i32 {
+%entry:
+  %0 = eq 6, 0
+  %1 = sub 0, %0
+  %2 = sub 0, %1
+  ret %2
+}
+```
+
+应该递归实现输出 

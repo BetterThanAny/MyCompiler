@@ -40,12 +40,13 @@ using namespace std;
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
 %token INT RETURN
-%token <str_val> IDENT
+%token <str_val> IDENT 
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt 
+%type <ast_val> FuncDef FuncType Block Stmt Exp UnaryExp PrimaryExp
 %type <int_val> Number
+%type <str_val> UNARYOP
 
 %%
 
@@ -100,10 +101,49 @@ Block
   ;
 
 Stmt
-  : RETURN Number ';' {
+  : RETURN Exp ';' {
     auto stmt_ast = new StmtAST();
-    stmt_ast->number = unique_ptr<int>(new int($2)); // 这里可能不太正确
+    stmt_ast->exp = unique_ptr<BaseAST>($2);
     $$ = stmt_ast;
+  }
+  ;
+
+Exp
+  : UnaryExp {
+    auto exp_ast = new ExpAST();
+    exp_ast->unary_exp = unique_ptr<BaseAST>($1);
+    $$ = exp_ast;
+  }
+  ; 
+
+UnaryExp
+  : PrimaryExp {
+    auto unary_exp_ast = new UnaryExpAST();
+    unary_exp_ast->type = UnaryExpType::primaryT;
+    unary_exp_ast->exp = unique_ptr<BaseAST>($1);
+    $$ = unary_exp_ast;
+  }
+  | UNARYOP UnaryExp {
+    auto unary_exp_ast = new UnaryExpAST();
+    unary_exp_ast->type = UnaryExpType::unaryT;
+    unary_exp_ast->op = *unique_ptr<string>($1);
+    unary_exp_ast->exp = unique_ptr<BaseAST>($2);
+    $$ = unary_exp_ast;
+  }
+  ;
+
+PrimaryExp
+  : '(' Exp ')' {
+    auto primary_exp_ast = new PrimaryExpAST();
+    primary_exp_ast->type = PrimaryExpType::expT;
+    primary_exp_ast->exp = unique_ptr<BaseAST>($2);
+    $$ = primary_exp_ast;
+  }
+  | Number {
+    auto primary_exp_ast = new PrimaryExpAST();
+    primary_exp_ast->type = PrimaryExpType::numberT;
+    primary_exp_ast->number = ($1);
+    $$ = primary_exp_ast;
   }
   ;
 
@@ -112,6 +152,23 @@ Number
     $$ = ($1);
   }
   ;
+
+UNARYOP
+  : '+'{
+    string *op = new string("+");
+    $$ = op;
+  }
+  | '-'{
+    string *op = new string("-");
+    $$ = op;
+  }
+  | '!'{
+    string *op = new string("!");
+    $$ = op;
+  }
+  ;
+  
+
 
 %%
 
@@ -123,8 +180,7 @@ void yyerror(std::unique_ptr<BaseAST> &ast, const char *s) {
     int len=strlen(yytext);
     int i;
     char buf[512]={0};
-    for (i=0;i<len;++i)
-    {
+    for (i=0;i<len;++i){
         sprintf(buf,"%s%d ",buf,yytext[i]);
     }
     fprintf(stderr, "ERROR: %s at symbol '%s' on line %d\n", s, buf, yylineno);
