@@ -18,7 +18,7 @@ public:
   virtual std::string DumpIR() const = 0;
 };
 
-// CompUnit 是 BaseAST
+// CompUnit ::= FuncDef
 class CompUnitAST : public BaseAST
 {
 public:
@@ -37,7 +37,7 @@ public:
   }
 };
 
-// FuncDef 也是 BaseAST
+// FuncDef ::= FuncType IDENT "(" ")" Block
 class FuncDefAST : public BaseAST
 {
 public:
@@ -70,6 +70,7 @@ public:
   }
 };
 
+// FuncType ::= "int"
 class FuncTypeAST : public BaseAST
 {
 public:
@@ -89,6 +90,7 @@ public:
   }
 };
 
+//Block ::= "{" Stmt "}"
 class BlockAST : public BaseAST
 {
 public:
@@ -107,6 +109,7 @@ public:
   }
 };
 
+// Stmt ::= "return" Exp ";"
 class StmtAST : public BaseAST
 {
 public:
@@ -120,12 +123,13 @@ public:
   }
   std::string DumpIR() const override
   {
-    return exp->DumpIR();
-    std::cout << "ret %" << tmp_symbol_num << std::endl;
+    std::string ret_value = exp->DumpIR();
+    std::cout << "ret " << ret_value << std::endl;
+    // ret_value 是数字或者临时变量
   }
 };
 
-// Exp         ::= UnaryExp;
+// Exp ::= UnaryExp;
 class ExpAST : public BaseAST
 {
 public:
@@ -143,6 +147,7 @@ public:
   }
 };
 
+// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp 
 class UnaryExpAST : public BaseAST
 { 
 public:
@@ -161,16 +166,28 @@ public:
   {
     if (type == UnaryExpType::unaryT)
     {
-      exp->DumpIR();
+      std::string ret_value = exp->DumpIR();
+      // 当前的临时变量 tmp_symbol
+      std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
       if (op == "-")
       {
-        std::cout << '%' << tmp_symbol_num << " = sub 0, %" << tmp_symbol_num - 1 << std::endl;
-        ++tmp_symbol_num;
+        std::cout << tmp_symbol << " = sub 0, " << ret_value << std::endl;
+        tmp_symbol_num++;
+        return tmp_symbol;
       }
       else if (op == "!")
       {
-        std::cout << '%' << tmp_symbol_num << " = eq " << tmp_symbol_num - 1 <<", 0" << std::endl;
-        ++tmp_symbol_num;
+        std::cout << tmp_symbol << " = eq " << ret_value <<", 0" << std::endl;
+        tmp_symbol_num++;
+        return tmp_symbol;
+      }
+      else if (op == "+")
+      {
+        return ret_value;
+      }
+      else
+      {
+        assert(false);
       }
     }
     else if(type == UnaryExpType::primaryT)
@@ -210,12 +227,13 @@ class PrimaryExpAST : public BaseAST
   {
     if (type == PrimaryExpType::expT)
     {
-      return exp->DumpIR();
+      ret_value = exp->DumpIR();
     }
     else if (type == PrimaryExpType::numberT)
     {
-
+      ret_value = std::to_string(number);
     }
+    return ret_value;
   }
 };
   
