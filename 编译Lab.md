@@ -43,13 +43,14 @@ Number ::= INT_CONST;
 
 ## Lv1.4
 
-``` C++
+``` cpp
 int main()
 {
 // 忽略我的存在
 /*这个也需要忽略*/
 return 0;
 }
+```
 
 
 ``` koopa
@@ -66,7 +67,9 @@ fun @main(): i32 {
 ## Lv 2
 
 版本1 本地测试通过，之后可以改一下Visit函数(感觉没必要)
-
+滚回来改 Visit 函数了
+![[Pasted image 20240916084335.png]]
+![[Pasted image 20240916084955.png]]
 ## Lv3.1
 
 一元表达式
@@ -82,7 +85,7 @@ UnaryOp     ::= "+" | "-" | "!";
 
 ```
 分析一下如何处理整个程序
-```C++
+```cpp
 int main() {
 
   return +(- -!6);  // 看起来像个颜文字
@@ -148,3 +151,7 @@ fun @main(): i32 {
 ```
 
 应该递归实现输出 
+`build/compiler -koopa ./debug/hello3_1.c -o hello.koopa`
+踩坑：`cout` 从右向左计算，从左向右输出
+
+对于 ret 如何处理 

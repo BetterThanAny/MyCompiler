@@ -5,15 +5,23 @@
 #include <cassert>
 
 static unsigned int tmp_symbol_num = 0; // 记录临时符号 %0, %1, %2, ...
-enum class UnaryExpType { primaryT, unaryT };
-enum class PrimaryExpType { numberT, expT };
+enum class UnaryExpType
+{
+  primaryT,
+  unaryT
+};
+enum class PrimaryExpType
+{
+  numberT,
+  expT
+};
 
 // 所有 AST 的基类
 class BaseAST
 {
 public:
   virtual ~BaseAST() = default;
-     
+
   virtual void Dump() const = 0;
   virtual std::string DumpIR() const = 0;
 };
@@ -33,7 +41,7 @@ public:
   }
   std::string DumpIR() const override
   {
-     return func_def->DumpIR();
+    return func_def->DumpIR();
   }
 };
 
@@ -53,7 +61,7 @@ public:
     block->Dump();
     std::cout << "}";
   }
-  
+
   std::string DumpIR() const override
   {
     if (ident != "main")
@@ -84,13 +92,15 @@ public:
   }
   std::string DumpIR() const override
   {
-    if(funcT_name == "int") std::cout << "i32" << " ";
-    else std::cout << "Not allowed" << std::endl;
+    if (funcT_name == "int")
+      std::cout << "i32" << " ";
+    else
+      std::cout << "Not allowed" << std::endl;
     return "";
   }
 };
 
-//Block ::= "{" Stmt "}"
+// Block ::= "{" Stmt "}"
 class BlockAST : public BaseAST
 {
 public:
@@ -117,15 +127,17 @@ public:
   std::unique_ptr<BaseAST> exp;
   void Dump() const override
   {
-    std::cout << "StmtAST {" << std::endl << "return ";
+    std::cout << "StmtAST {" << std::endl
+              << "return ";
     exp->Dump();
     std::cout << "; }";
   }
   std::string DumpIR() const override
   {
     std::string ret_value = exp->DumpIR();
-    std::cout << "ret " << ret_value << std::endl;
+    std::cout << "  ret " << ret_value << std::endl;
     // ret_value 是数字或者临时变量
+    return "";
   }
 };
 
@@ -147,18 +159,19 @@ public:
   }
 };
 
-// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp 
+// UnaryExp ::= PrimaryExp | UnaryOp UnaryExp
 class UnaryExpAST : public BaseAST
-{ 
+{
 public:
-  UnaryExpType type;// { primaryT, unaryT }
+  UnaryExpType type; // { primaryT, unaryT }
   std::string op;
   std::unique_ptr<BaseAST> exp;
   void Dump() const override
   {
     if (type == UnaryExpType::unaryT)
     {
-      std::cout << op;;
+      std::cout << op;
+      ;
     }
     exp->Dump();
   }
@@ -171,13 +184,13 @@ public:
       std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
       if (op == "-")
       {
-        std::cout << tmp_symbol << " = sub 0, " << ret_value << std::endl;
+        std::cout << "  " << tmp_symbol << " = sub 0, " << ret_value << std::endl;
         tmp_symbol_num++;
         return tmp_symbol;
       }
       else if (op == "!")
       {
-        std::cout << tmp_symbol << " = eq " << ret_value <<", 0" << std::endl;
+        std::cout << "  " << tmp_symbol << " = eq " << ret_value << ", 0" << std::endl;
         tmp_symbol_num++;
         return tmp_symbol;
       }
@@ -190,7 +203,7 @@ public:
         assert(false);
       }
     }
-    else if(type == UnaryExpType::primaryT)
+    else if (type == UnaryExpType::primaryT)
     {
       return exp->DumpIR();
     }
@@ -201,11 +214,10 @@ public:
   }
 };
 
-
 class PrimaryExpAST : public BaseAST
 {
-  public:
-  PrimaryExpType type ;//{ numberT, expT }
+public:
+  PrimaryExpType type; //{ numberT, expT }
   std::unique_ptr<BaseAST> exp;
   int number;
   void Dump() const override
@@ -225,6 +237,7 @@ class PrimaryExpAST : public BaseAST
   }
   std::string DumpIR() const override
   {
+    std::string ret_value = "";
     if (type == PrimaryExpType::expT)
     {
       ret_value = exp->DumpIR();
@@ -236,4 +249,3 @@ class PrimaryExpAST : public BaseAST
     return ret_value;
   }
 };
-  
