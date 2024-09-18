@@ -134,6 +134,9 @@ void Visit(const koopa_raw_value_t &value)
   case KOOPA_RVT_INTEGER:
     Visit(kind.data.integer);
     break;
+  case KOOPA_RVT_BINARY:
+    Visit(kind.data.binary);
+    break;
   default:
     assert(false);
   }
@@ -144,6 +147,31 @@ void Visit(const koopa_raw_return_t &ret)
   koopa_raw_value_t ret_value = ret.value;
   Visit(ret_value);
   std::cout << "  ret" << std::endl;
+}
+/*
+typedef struct {
+  /// Operator.
+  koopa_raw_binary_op_t op;
+  /// Left-hand side value.
+  koopa_raw_value_t lhs;
+  /// Right-hand side value.
+  koopa_raw_value_t rhs;
+} koopa_raw_binary_t;
+*/
+void Visit(const koopa_raw_binary_t &binary)
+{
+  koopa_raw_value_t lhs = binary.lhs;
+  koopa_raw_value_t rhs = binary.rhs;
+  Visit(lhs);
+  Visit(rhs);
+  switch (binary.op)
+  {
+  case KOOPA_RBO_EQ: // ==
+    std::cout << " = eq " << std::endl;
+    break;
+  default:
+    assert(false);
+  }
 }
 
 void Visit(const koopa_raw_integer_t &integer)

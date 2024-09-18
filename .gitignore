@@ -2,4 +2,6 @@
 /build
 /debug
 /.vscode
+*.koopa 
+*.riscv
 
