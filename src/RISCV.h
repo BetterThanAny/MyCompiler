@@ -11,7 +11,7 @@ void Visit(const koopa_raw_basic_block_t &bb);
 void Visit(const koopa_raw_value_t &value);
 void Visit(const koopa_raw_return_t &ret);
 void Visit(const koopa_raw_integer_t &integer);
-
+void Visit(const koopa_raw_binary_t &binary);
 /*
 typedef struct {
   /// Global values (global allocations only).
@@ -24,7 +24,7 @@ typedef struct {
 void Visit(const koopa_raw_program_t &program)
 {
   // 执行一些其他的必要操作
-  std::cout << "   .text" << std::endl;
+  std::cout << "\t.text" << std::endl;
   // 访问所有全局变量
   Visit(program.values);
   // 访问所有函数
