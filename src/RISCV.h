@@ -121,6 +121,23 @@ struct koopa_raw_value_data {
   /// Kind of value.
   koopa_raw_value_kind_t kind;
 };
+typedef struct koopa_raw_type_kind {
+  koopa_raw_type_tag_t tag;
+  union {
+    struct {
+      const struct koopa_raw_type_kind *base;
+      size_t len;
+    } array;
+    struct {
+      const struct koopa_raw_type_kind *base;
+    } pointer;
+    struct {
+      koopa_raw_slice_t params;
+      const struct koopa_raw_type_kind *ret;
+    } function;
+  } data;
+} koopa_raw_type_kind_t;
+
 */
 // 访问指令
 void Visit(const koopa_raw_value_t &value)
@@ -168,6 +185,9 @@ void Visit(const koopa_raw_binary_t &binary)
   {
   case KOOPA_RBO_EQ: // ==
     std::cout << " = eq " << std::endl;
+    break;
+  case KOOPA_RBO_SUB: // -
+    std::cout << "\tsub   " << std::endl;
     break;
   default:
     assert(false);

@@ -109,13 +109,47 @@ Stmt
   ;
 
 Exp
-  : UnaryExp {
+  : AddExp {
     auto exp_ast = new ExpAST();
-    exp_ast->unary_exp = unique_ptr<BaseAST>($1);
+    exp_ast->add_exp = unique_ptr<BaseAST>($1);
     $$ = exp_ast;
   }
   ; 
 
+AddExp
+  : MulExp {
+    auto add_exp_ast = new AddExpAST();
+    add_exp_ast->type = AddExpType::mulT;
+    add_exp_ast->mul_exp = unique_ptr<BaseAST>($1);
+    $$ = add_exp_ast;
+  }
+  | AddExp ADDOP MulExp {
+    auto add_exp_ast = new AddExpAST();
+    add_exp_ast->type = AddExpType::addT;
+    add_exp_ast->add_exp = unique_ptr<BaseAST>($1);
+    add_exp_ast->op = *unique_ptr<string>($2);
+    add_exp_ast->mul_exp = unique_ptr<BaseAST>($3);
+    $$ = add_exp_ast;
+  }
+  ;
+
+MulExp
+  : UnaryExp {
+    auto mul_exp_ast = new MulExpAST();
+    mul_exp_ast->type = MulExpType::unaryT;
+    mul_exp_ast->unary_exp = unique_ptr<BaseAST>($1);
+    $$ = mul_exp_ast;
+  }
+  | MulExp MULOP UnaryExp {
+    auto mul_exp_ast = new MulExpAST();
+    mul_exp_ast->type = MulExpType::mulT;
+    mul_exp_ast->mul_exp = unique_ptr<BaseAST>($1);
+    mul_exp_ast->op = *unique_ptr<string>($2);
+    mul_exp_ast->unary_exp = unique_ptr<BaseAST>($3);
+    $$ = mul_exp_ast;
+  }
+  ;
+  
 UnaryExp
   : PrimaryExp {
     auto unary_exp_ast = new UnaryExpAST();
@@ -168,6 +202,31 @@ UNARYOP
   }
   ;
   
+ADDOP
+  : '+'{
+    string *op = new string("+");
+    $$ = op;
+  }
+  | '-'{
+    string *op = new string("-");
+    $$ = op;
+  }
+  ;
+
+MULOP
+  : '*'{
+    string *op = new string("*");
+    $$ = op;
+  }
+  | '/'{
+    string *op = new string("/");
+    $$ = op;
+  }
+  | '%'{
+    string *op = new string("%"); 
+    $$ = op;
+  }
+  ;
 
 
 %%
