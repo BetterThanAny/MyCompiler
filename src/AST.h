@@ -193,14 +193,14 @@ public:
   void Dump() const override
   {
     std::cout << "LOrExpAST {";
-    if(type == LOrExpType::lorT)
+    if (type == LOrExpType::lorT)
     {
       lor_exp->Dump();
       std::cout << "||";
     }
     else
     {
-      
+
       land_exp->Dump();
     }
     std::cout << "}";
@@ -231,13 +231,13 @@ public:
   void Dump() const override
   {
     std::cout << "LAndExpAST {";
-    if(type == LAndExpType::landT)
+    if (type == LAndExpType::landT)
     {
       land_exp->Dump();
       std::cout << "&&";
     }
-      eq_exp->Dump();
-  
+    eq_exp->Dump();
+
     std::cout << "}";
   }
   std::string DumpIR() const override
@@ -267,7 +267,7 @@ public:
   void Dump() const override
   {
     std::cout << "EqExpAST {";
-    if(type == EqExpType::eqT)
+    if (type == EqExpType::eqT)
     {
       eq_exp->Dump();
       std::cout << op;
@@ -370,10 +370,10 @@ public:
   void Dump() const override
   {
     std::cout << "AddExpAST {";
-    if(type == AddExpType::mulT)
+    if (type == AddExpType::mulT)
     {
-     add_exp->Dump();
-      std::cout << op; 
+      add_exp->Dump();
+      std::cout << op;
     }
     else
     {
@@ -412,7 +412,7 @@ public:
 
 // MulExp ::= UnaryExp | MulExp "*" UnaryExp | MulExp "/" UnaryExp | MulExp "%" UnaryExp
 class MulExpAST : public BaseAST
-{ 
+{
 public:
   MulExpType type; // { unaryT, mulT }
   std::unique_ptr<BaseAST> mul_exp;
@@ -421,7 +421,7 @@ public:
   void Dump() const override
   {
     std::cout << "MulExpAST {";
-    if(type == MulExpType::mulT)
+    if (type == MulExpType::mulT)
     {
       mul_exp->Dump();
       std::cout << op;
@@ -466,8 +466,6 @@ public:
     }
   }
 };
-
-
 
 // UnaryExp ::= PrimaryExp | UnaryOp UnaryExp
 class UnaryExpAST : public BaseAST
