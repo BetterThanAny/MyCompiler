@@ -1,7 +1,7 @@
 %code requires {
   #include <memory>
   #include <string>
-  #include "AST.h"
+  #include "AST.hpp"
   #include <cstring>
 }
 
@@ -10,7 +10,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include "AST.h"
+#include "AST.hpp"
 #include <cstring>
 
 // 声明 lexer 函数和错误处理函数

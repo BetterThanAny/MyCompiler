@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <string>
 #include "sysy.tab.hpp"
-#include "AST.h"
+#include "AST.hpp"
 
 using namespace std;
 
@@ -20,6 +20,10 @@ BlockComment  "/*"([^*]*|(\*+[^/]))*"*/"
 
 /* 标识符 */
 Identifier    [a-zA-Z_][a-zA-Z0-9_]*
+
+/* 运算符 */
+UnaryOperator '!'
+/* We handle unary operators '+' and '-' as binary operator. See sysy.y for more detail. */
 
 /* 整数字面量 */
 Decimal       [1-9][0-9]*

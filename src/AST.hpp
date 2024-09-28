@@ -40,6 +40,23 @@ enum class EqExpType
   relT,
   eqT
 };
+
+class BaseAST;
+class CompUnitAST;
+class FuncDefAST;
+class FuncTypeAST;
+class BlockAST;
+class StmtAST;
+class ExpAST;
+class LOrExpAST;
+class LAndExpAST;
+class EqExpAST;
+class RelExpAST;
+class AddExpAST;
+class MulExpAST;
+class UnaryExpAST;
+class PrimaryExpAST;
+
 // 所有 AST 的基类
 class BaseAST
 {
@@ -47,7 +64,7 @@ public:
   virtual ~BaseAST() = default;
 
   virtual void Dump() const = 0;
-  virtual std::string DumpIR() const = 0;
+  virtual std::string DumpIR() const = 0;// 输出koopa IR
 };
 
 // CompUnit ::= FuncDef
