@@ -45,9 +45,8 @@ using namespace std;
 
 // 非终结符的类型定义
 %type <ast_val> FuncDef FuncType Block Stmt Exp UnaryExp PrimaryExp
-%type <ast_val> AddExp MulExp RelExp EqExp LandExp LorExp
+%type <ast_val> AddExp MulExp RelExp EqExp LAndExp LOrExp
 %type <int_val> Number
-%type <str_val> UNARYOP
 
 %%
 
@@ -110,23 +109,81 @@ Stmt
   ;
 
 Exp
-  : AddExp {
+  : LOrExp {
     auto exp_ast = new ExpAST();
-    exp_ast->add_exp = unique_ptr<BaseAST>($1);
+    exp_ast->lor_exp = unique_ptr<BaseAST>($1);
     $$ = exp_ast;
   }
   ; 
 
+LOrExp
+  : LAndExp {
+    auto lor_exp_ast = new LOrExpAST();
+    lor_exp_ast->land_exp = unique_ptr<BaseAST>($1);
+    $$ = lor_exp_ast;
+  }
+  | LOrExp LOROP LAndExp {
+    auto lor_exp_ast = new LOrExpAST();
+    lor_exp_ast->lor_exp = unique_ptr<BaseAST>($1);
+    lor_exp_ast->op = *unique_ptr<string>($2);
+    lor_exp_ast->land_exp = unique_ptr<BaseAST>($3);
+    $$ = lor_exp_ast;
+  }
+  ;
+
+  LAndExp
+  : EqExp {
+    auto land_exp_ast = new LAndExpAST();
+    land_exp_ast->eq_exp = unique_ptr<BaseAST>($1);
+    $$ = land_exp_ast;
+  }
+  | LAndExp LANDOP EqExp {
+    auto land_exp_ast = new LAndExpAST();
+    land_exp_ast->land_exp = unique_ptr<BaseAST>($1);
+    land_exp_ast->op = *unique_ptr<string>($2);
+    land_exp_ast->eq_exp = unique_ptr<BaseAST>($3);
+    $$ = land_exp_ast;
+  }
+  ;
+
+EqExp 
+  : RelExp {
+    auto eq_exp_ast = new EqExpAST();
+    eq_exp_ast->rel_exp = unique_ptr<BaseAST>($1);
+    $$ = eq_exp_ast;
+  }
+  | EqExp EQOP RelExp {
+    auto eq_exp_ast = new EqExpAST();
+    eq_exp_ast->eq_exp = unique_ptr<BaseAST>($1);
+    eq_exp_ast->op = *unique_ptr<string>($2);
+    eq_exp_ast->rel_exp = unique_ptr<BaseAST>($3);
+    $$ = eq_exp_ast;
+  }
+  ;
+
+RelExp
+  : AddExp {
+    auto rel_exp_ast = new RelExpAST();
+    rel_exp_ast->add_exp = unique_ptr<BaseAST>($1);
+    $$ = rel_exp_ast;
+  }
+  | RelExp RELOP AddExp {
+    auto rel_exp_ast = new RelExpAST();
+    rel_exp_ast->rel_exp = unique_ptr<BaseAST>($1);
+    rel_exp_ast->op = *unique_ptr<string>($2);
+    rel_exp_ast->add_exp = unique_ptr<BaseAST>($3);
+    $$ = rel_exp_ast;
+  }
+  ;
+
 AddExp
   : MulExp {
     auto add_exp_ast = new AddExpAST();
-    add_exp_ast->type = AddExpType::mulT;
     add_exp_ast->mul_exp = unique_ptr<BaseAST>($1);
     $$ = add_exp_ast;
   }
   | AddExp ADDOP MulExp {
     auto add_exp_ast = new AddExpAST();
-    add_exp_ast->type = AddExpType::addT;
     add_exp_ast->add_exp = unique_ptr<BaseAST>($1);
     add_exp_ast->op = *unique_ptr<string>($2);
     add_exp_ast->mul_exp = unique_ptr<BaseAST>($3);
@@ -137,13 +194,11 @@ AddExp
 MulExp
   : UnaryExp {
     auto mul_exp_ast = new MulExpAST();
-    mul_exp_ast->type = MulExpType::unaryT;
     mul_exp_ast->unary_exp = unique_ptr<BaseAST>($1);
     $$ = mul_exp_ast;
   }
   | MulExp MULOP UnaryExp {
     auto mul_exp_ast = new MulExpAST();
-    mul_exp_ast->type = MulExpType::mulT;
     mul_exp_ast->mul_exp = unique_ptr<BaseAST>($1);
     mul_exp_ast->op = *unique_ptr<string>($2);
     mul_exp_ast->unary_exp = unique_ptr<BaseAST>($3);
@@ -159,6 +214,13 @@ UnaryExp
     $$ = unary_exp_ast;
   }
   | UNARYOP UnaryExp {
+    auto unary_exp_ast = new UnaryExpAST();
+    unary_exp_ast->type = UnaryExpType::unaryT;
+    unary_exp_ast->op = *unique_ptr<string>($1);
+    unary_exp_ast->exp = unique_ptr<BaseAST>($2);
+    $$ = unary_exp_ast;
+  }
+  | ADDOP UnaryExp {
     auto unary_exp_ast = new UnaryExpAST();
     unary_exp_ast->type = UnaryExpType::unaryT;
     unary_exp_ast->op = *unique_ptr<string>($1);
@@ -185,47 +247,6 @@ PrimaryExp
 Number
   : INT_CONST {
     $$ = ($1);
-  }
-  ;
-
-UNARYOP
-  : '+'{
-    string *op = new string("+");
-    $$ = op;
-  }
-  | '-'{
-    string *op = new string("-");
-    $$ = op;
-  }
-  | '!'{
-    string *op = new string("!");
-    $$ = op;
-  }
-  ;
-  
-ADDOP
-  : '+'{
-    string *op = new string("+");
-    $$ = op;
-  }
-  | '-'{
-    string *op = new string("-");
-    $$ = op;
-  }
-  ;
-
-MULOP
-  : '*'{
-    string *op = new string("*");
-    $$ = op;
-  }
-  | '/'{
-    string *op = new string("/");
-    $$ = op;
-  }
-  | '%'{
-    string *op = new string("%"); 
-    $$ = op;
   }
   ;
 

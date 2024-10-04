@@ -15,31 +15,7 @@ enum class PrimaryExpType
   numberT,
   expT
 };
-enum class AddExpType
-{
-  mulT,
-  addT
-};
-enum class MulExpType
-{
-  unaryT,
-  mulT
-};
-enum class LOrExpType
-{
-  landT,
-  lorT
-};
-enum class LAndExpType
-{
-  eqT,
-  landT
-};
-enum class EqExpType
-{
-  relT,
-  eqT
-};
+
 
 class BaseAST;
 class CompUnitAST;
@@ -155,7 +131,7 @@ public:
   }
   std::string DumpIR() const override
   {
-    std::cout << "%entry:" << std::endl; // %e 会变蓝，不行的话分开输出
+    std::cout << "%entry:" << std::endl; // %e 会变蓝，\% 会变红，什么鬼？
     return stmt->DumpIR();
   }
 };
@@ -176,7 +152,7 @@ public:
   std::string DumpIR() const override
   {
     std::string ret_value = exp->DumpIR();
-    std::cout << "  ret " << ret_value << std::endl;
+    std::cout << "\tret " << ret_value << std::endl;
     // ret_value 是数字或者临时变量
     return "";
   }
@@ -204,37 +180,36 @@ public:
 class LOrExpAST : public BaseAST
 {
 public:
-  LOrExpType type; // { landT, lorT }
+  std::string op;
   std::unique_ptr<BaseAST> lor_exp;
   std::unique_ptr<BaseAST> land_exp;
   void Dump() const override
   {
     std::cout << "LOrExpAST {";
-    if (type == LOrExpType::lorT)
-    {
-      lor_exp->Dump();
-      std::cout << "||";
-    }
+    if (op == "")
+      land_exp->Dump();
     else
     {
-
+      lor_exp->Dump();
+      std::cout << op;
       land_exp->Dump();
     }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    if (type == LOrExpType::landT)
-    {
+    std::string result_var = "";
+    if (op == "")
       return land_exp->DumpIR();
-    }
-    std::string ret_value = lor_exp->DumpIR();
-    std::string ret_value2 = land_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    std::cout << "  " << tmp_symbol << " = or " << ret_value << ", " << ret_value2 << std::endl;
-    tmp_symbol_num++;
-    return tmp_symbol;
+    assert(op == "||");
+    std::string lorexp = lor_exp->DumpIR();
+    std::string landexp = land_exp->DumpIR();
+    // TODO: Handle And operation (A && B is considered (A!=0) && (B!=0) here).
+    std::cout << "\t%" << tmp_symbol_num++ << " = eq " << lorexp << ", 0\n";
+    std::cout << "\t%" << tmp_symbol_num++ << " = eq " << landexp << ", 0\n";
+    std::cout << "\t%" << tmp_symbol_num << " = or %" << (tmp_symbol_num - 2) << ", %"
+              << (tmp_symbol_num - 1) << "\n";
+    return "%" + std::to_string(tmp_symbol_num++);
   }
 };
 
@@ -242,34 +217,44 @@ public:
 class LAndExpAST : public BaseAST
 {
 public:
-  LAndExpType type; // { eqT, landT }
   std::unique_ptr<BaseAST> land_exp;
   std::unique_ptr<BaseAST> eq_exp;
+  std::string op;
   void Dump() const override
   {
     std::cout << "LAndExpAST {";
-    if (type == LAndExpType::landT)
+    if (op == "")
     {
-      land_exp->Dump();
-      std::cout << "&&";
+      // LAndExp := EqExp
+      eq_exp->Dump();
     }
-    eq_exp->Dump();
-
+    else
+    {
+      // LAndExp := LAndExp LANDOP EqExp
+      land_exp->Dump();
+      std::cout << op;
+      eq_exp->Dump();
+    }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    if (type == LAndExpType::eqT)
-    {
-      return eq_exp->DumpIR();
-    }
-    std::string ret_value = land_exp->DumpIR();
-    std::string ret_value2 = eq_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    std::cout << "  " << tmp_symbol << " = and " << ret_value << ", " << ret_value2 << std::endl;
-    tmp_symbol_num++;
-    return tmp_symbol;
+    
+   if (op == ""){ 
+            // LAndExp := EqExp
+            return eq_exp->DumpIR();
+        }
+
+        // LAndExp := LAndExp LANDOP EqExp
+        assert(op == "&&");
+        std::string landexp = land_exp->DumpIR();
+        std::string eqexp = eq_exp->DumpIR();
+        // TODO: Handle And operation (A && B is considered (A!=0) && (B!=0) here).
+        std::cout << "\t%" << tmp_symbol_num++ << " = ne " << landexp << ", 0\n";
+        std::cout << "\t%" << tmp_symbol_num++ << " = ne " << eqexp << ", 0\n";
+        std::cout << "\t%" << tmp_symbol_num << " = and %" << (tmp_symbol_num - 2) << ", %" 
+                    << (tmp_symbol_num - 1) << "\n";
+        return "%" + std::to_string(tmp_symbol_num++);
   }
 };
 
@@ -277,50 +262,53 @@ public:
 class EqExpAST : public BaseAST
 {
 public:
-  EqExpType type; // { relT, eqT }
   std::unique_ptr<BaseAST> eq_exp;
   std::unique_ptr<BaseAST> rel_exp;
   std::string op;
   void Dump() const override
   {
     std::cout << "EqExpAST {";
-    if (type == EqExpType::eqT)
+    if (op == "")
     {
-      eq_exp->Dump();
-      std::cout << op;
+      // EqExp := RelExp
+      rel_exp->Dump();
     }
     else
     {
+      // EqExp := EqExp EQOP RelExp
+      eq_exp->Dump();
+      std::cout << op;
       rel_exp->Dump();
     }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    if (type == EqExpType::relT)
+    if (op == "")
     {
+      // EqExp := RelExp
       return rel_exp->DumpIR();
-    }
-    std::string ret_value = eq_exp->DumpIR();
-    std::string ret_value2 = rel_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    if (op == "==")
-    {
-      std::cout << "  " << tmp_symbol << " = eq " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == "!=")
-    {
-      std::cout << "  " << tmp_symbol << " = ne " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
     }
     else
     {
-      assert(false);
+      // EqExp := EqExp EQOP RelExp
+      std::string eqexp = eq_exp->DumpIR();
+      std::string relexp = rel_exp->DumpIR();
+      if (op == "==")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = eq " << eqexp << ", "
+                  << relexp << "\n";
+      }
+      else if (op == "!=")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = ne " << eqexp << ", "
+                  << relexp << "\n";
+      }
+      else
+        assert(false);
+      return "%" + std::to_string(tmp_symbol_num++);
     }
+    return "";
   }
 };
 
@@ -334,45 +322,50 @@ public:
   void Dump() const override
   {
     std::cout << "RelExpAST {";
-    rel_exp->Dump();
-    std::cout << op;
-    add_exp->Dump();
+    if (op == "")
+    {
+      // RelExp := AddExp
+      add_exp->Dump();
+    }
+    else
+    {
+      // RelExp := RelExp RELOP AddExp
+      rel_exp->Dump();
+      std::cout << op;
+      add_exp->Dump();
+    }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    std::string ret_value = rel_exp->DumpIR();
-    std::string ret_value2 = add_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    if (op == "<")
-    {
-      std::cout << "  " << tmp_symbol << " = slt " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == ">")
-    {
-      std::cout << "  " << tmp_symbol << " = sgt " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == "<=")
-    {
-      std::cout << "  " << tmp_symbol << " = sle " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == ">=")
-    {
-      std::cout << "  " << tmp_symbol << " = sge " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else
-    {
-      assert(false);
-    }
+    if (op == ""){ 
+            // RelExp := AddExp
+            return add_exp->DumpIR();
+        }
+        else{
+            // RelExp := RelExp RELOP AddExp
+            std::string relexp = rel_exp->DumpIR();
+            std::string addexp = add_exp->DumpIR();
+            if (op == "<") {
+                std::cout << "\t%" << tmp_symbol_num << " = lt " << relexp << ", " 
+                          << addexp << "\n";
+            }
+            else if (op == ">"){
+                std::cout << "\t%" << tmp_symbol_num << " = gt " << relexp << ", "
+                          << addexp << "\n";
+            }
+            else if (op == "<="){
+                std::cout << "\t%" << tmp_symbol_num << " = le " << relexp << ", "
+                          << addexp << "\n";
+            }            
+            else if (op == ">="){
+                std::cout << "\t%" << tmp_symbol_num << " = ge " << relexp << ", "
+                          << addexp << "\n";
+            }            
+            else assert(false);
+            return "%" + std::to_string(tmp_symbol_num++);
+        }
+        return "";
   }
 };
 
@@ -380,50 +373,46 @@ public:
 class AddExpAST : public BaseAST
 {
 public:
-  AddExpType type; // { mulT, addT }
   std::unique_ptr<BaseAST> add_exp;
   std::unique_ptr<BaseAST> mul_exp;
   std::string op;
   void Dump() const override
   {
     std::cout << "AddExpAST {";
-    if (type == AddExpType::mulT)
-    {
-      add_exp->Dump();
-      std::cout << op;
-    }
-    else
-    {
-      mul_exp->Dump();
-    }
+     if (op == ""){ 
+            // AddExp := MulExp
+            mul_exp->Dump();
+        }
+        else{
+            // AddExp := AddExp AddOp MulExp
+            add_exp->Dump();
+            std::cout << op;
+            mul_exp->Dump();
+        }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    if (type == AddExpType::mulT)
-    {
-      return add_exp->DumpIR();
-    }
-    std::string ret_value = add_exp->DumpIR();
-    std::string ret_value2 = mul_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    if (op == "+")
-    {
-      std::cout << "  " << tmp_symbol << " = add " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == "-")
-    {
-      std::cout << "  " << tmp_symbol << " = sub " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else
-    {
-      assert(false);
-    }
+     if (op == ""){ 
+            // AddExp := MulExp
+            return mul_exp->DumpIR();
+        }
+        else{
+            // AddExp := AddExp AddOp MulExp
+            std::string addexp = add_exp->DumpIR();
+            std::string mulexp = mul_exp->DumpIR();
+            if (op == "+") {
+                std::cout << "\t%" << tmp_symbol_num << " = add " << addexp << ", " <<
+                    mulexp << "\n";
+            }
+            else if (op == "-"){
+                std::cout << "\t%" << tmp_symbol_num << " = sub " << addexp << ", " <<
+                    mulexp << "\n";
+            }
+            else assert(false);
+            return "%" + std::to_string(tmp_symbol_num++);
+        }
+        return "";
   }
 };
 
@@ -431,56 +420,50 @@ public:
 class MulExpAST : public BaseAST
 {
 public:
-  MulExpType type; // { unaryT, mulT }
   std::unique_ptr<BaseAST> mul_exp;
   std::unique_ptr<BaseAST> unary_exp;
   std::string op;
   void Dump() const override
   {
     std::cout << "MulExpAST {";
-    if (type == MulExpType::mulT)
-    {
-      mul_exp->Dump();
-      std::cout << op;
-    }
-    else
-    {
-      unary_exp->Dump();
-    }
+     if (op == ""){ 
+            // MulExp := UnaryExp
+            unary_exp->Dump();
+        }
+        else{
+            // MulExp := MulExp MulOp UnaryExp
+            mul_exp->Dump();
+            std::cout << op;
+            unary_exp->Dump();
+        }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-    if (type == MulExpType::unaryT)
-    {
-      return unary_exp->DumpIR();
-    }
-    std::string ret_value = mul_exp->DumpIR();
-    std::string ret_value2 = unary_exp->DumpIR();
-    // 当前的临时变量 tmp_symbol
-    std::string tmp_symbol = "%" + std::to_string(tmp_symbol_num);
-    if (op == "*")
-    {
-      std::cout << "  " << tmp_symbol << " = mul " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == "/")
-    {
-      std::cout << "  " << tmp_symbol << " = div " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else if (op == "%")
-    {
-      std::cout << "  " << tmp_symbol << " = mod " << ret_value << ", " << ret_value2 << std::endl;
-      tmp_symbol_num++;
-      return tmp_symbol;
-    }
-    else
-    {
-      assert(false);
-    }
+     if (op == ""){ 
+            // MulExp := UnaryExp
+            return unary_exp->DumpIR();
+        }
+        else{
+            // MulExp := MulExp MulOp UnaryExp
+            std::string mulexp = mul_exp->DumpIR();
+            std::string unaryexp = unary_exp->DumpIR();
+            if (op == "*") {
+                std::cout << "\t%" << tmp_symbol_num << " = mul " << mulexp << ", " <<
+                    unaryexp << "\n";
+            }
+            else if (op == "/"){
+                std::cout << "\t%" << tmp_symbol_num << " = div " << mulexp << ", " <<
+                    unaryexp << "\n";
+            }
+            else if (op == "%"){
+                std::cout << "\t%" << tmp_symbol_num << " = mod " << mulexp << ", " <<
+                    unaryexp << "\n";
+            }
+            else assert(false);
+            return "%" + std::to_string(tmp_symbol_num++);
+        }
+        return "";
   }
 };
 

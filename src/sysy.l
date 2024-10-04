@@ -22,14 +22,14 @@ BlockComment  "/*"([^*]*|(\*+[^/]))*"*/"
 Identifier    [a-zA-Z_][a-zA-Z0-9_]*
 
 /* 运算符 */
-UnaryOperator '!'
+UnaryOperator \!  
 /* We handle unary operators '+' and '-' as binary operator. See sysy.y for more detail. */
-MulOperator   '*' | '/' | '%'
-AddOperator   '+' | '-'
-RelOperator   '<' | '>' | "<=" | ">=" 
-EqOperator    "==" | "!="
-LandOperator  "&&"
-LorOperator   "||"
+MulOperator   \*|\/|\%
+AddOperator   \+|\-
+RelOperator   <|>|<=|>=
+EqOperator    ==|\!=
+LAndOperator  &&
+LOrOperator   \|\|
 /* 整数字面量 */
 Decimal       [1-9][0-9]*
 Octal         0[0-7]*
@@ -49,6 +49,15 @@ Hexadecimal   0[xX][0-9a-fA-F]+
 {Decimal}       { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Octal}         { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
 {Hexadecimal}   { yylval.int_val = strtol(yytext, nullptr, 0); return INT_CONST; }
+
+{UnaryOperator} { yylval.str_val = new string(yytext); return UNARYOP; }
+{MulOperator}   { yylval.str_val = new string(yytext); return MULOP; }
+{AddOperator}   { yylval.str_val = new string(yytext); return ADDOP; }  
+{RelOperator}   { yylval.str_val = new string(yytext); return RELOP; }    
+{EqOperator}    { yylval.str_val = new string(yytext); return EQOP; } 
+{LAndOperator}  { yylval.str_val = new string(yytext); return LANDOP; } 
+{LOrOperator}   { yylval.str_val = new string(yytext); return LOROP; }  
+
 
 .               { return yytext[0]; }
 
