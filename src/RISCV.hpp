@@ -2,7 +2,23 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <map>
 #include "koopa.h"
+
+struct register_t
+{
+  int reg_name;
+  int reg_num;
+};
+std::string reg_names[16] = {"t0", "t1", "t2", "t3", "t4", "t5", "t6",
+                             "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "x0"};
+koopa_raw_value_t registers[16];
+int reg_stats[16] = {0};
+koopa_raw_value_t present_value = 0;
+std::map<const koopa_raw_value_t, Reg> value_map;
+int stack_size = 0, stack_top = 0;
+std::map<uintptr_t, int> stack_frame;
+
 
 void Visit(const koopa_raw_program_t &program);
 void Visit(const koopa_raw_slice_t &slice);
@@ -86,8 +102,9 @@ typedef struct {
 void Visit(const koopa_raw_function_t &func)
 {
   // 执行一些其他的必要操作
-  std::cout << "   .globl " << func->name + 1 << std::endl;
-  std::cout << func->name + 1 << ":" << std::endl;
+  std::cout << "\t.globl " << func->name + 1 << std::endl;
+  if (fun->bbs.len == 0) return;
+  std::cout << func->name + 1 << ":\n";
 
   Visit(func->bbs); // 访问基本块
 }
@@ -107,6 +124,11 @@ typedef struct {
 // 访问基本块
 void Visit(const koopa_raw_basic_block_t &bb)
 {
+  int stack_s = cal_stack_s(bb->insts);
+  if (stack_s > 0){
+    std::cout << "\taddi sp, sp, -" << stack_s * 4 << std::endl;
+    
+  } 
   Visit(bb->insts); // 访问指令
 }
 
