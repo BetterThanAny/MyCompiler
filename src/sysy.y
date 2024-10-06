@@ -63,6 +63,17 @@ CompUnit
   }
   ;
 
+Decl
+  : ConstDecl{
+    auto decl_ast = new DeclAST();
+    decl_ast->const_decl = unique_ptr<BaseAST>($1);
+    $$ = decl_ast;
+  }
+  | VarDecl{
+    auto decl_ast = new DeclAST();
+    decl_ast->var_decl = unique_ptr<BaseAST>($1);
+    $$ = decl_ast;
+  }
 // FuncDef ::= FuncType IDENT '(' ')' Block;
 // 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
 // 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回

@@ -10,3 +10,4 @@ AST.h支持3.1
 现在暂时在做前端，最后一起做3的RISCV
 
 ./build/compiler -riscv ./debug/hello.c -o hello.riscv && \
+
