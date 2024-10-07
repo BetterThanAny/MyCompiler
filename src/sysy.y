@@ -3,6 +3,8 @@
   #include <string>
   #include "AST.hpp"
   #include <cstring>
+  #include <vector>
+  #include <map>
 }
 
 %{
@@ -12,6 +14,8 @@
 #include <string>
 #include "AST.hpp"
 #include <cstring>
+#include <vector>
+#include <map>
 
 // 声明 lexer 函数和错误处理函数
 int yylex();
@@ -35,16 +39,17 @@ using namespace std;
   std::string *str_val;
   int int_val;
   BaseAST *ast_val;
+  MulVecType *mul_val;
 }
 
 // lexer 返回的所有 token 种类的声明
 // 注意 IDENT 和 INT_CONST 会返回 token 的值, 分别对应 str_val 和 int_val
-%token INT RETURN
+%token INT RETURN CONST
 %token <str_val> IDENT UNARYOP MULOP ADDOP RELOP EQOP LANDOP LOROP
 %token <int_val> INT_CONST
 
 // 非终结符的类型定义
-%type <ast_val> FuncDef FuncType Block Stmt Exp UnaryExp PrimaryExp
+%type <ast_val> FuncDef FuncType Block BlockItem Stmt Exp UnaryExp PrimaryExp
 %type <ast_val> AddExp MulExp RelExp EqExp LAndExp LOrExp
 %type <int_val> Number
 
@@ -74,6 +79,100 @@ Decl
     decl_ast->var_decl = unique_ptr<BaseAST>($1);
     $$ = decl_ast;
   }
+  ;
+
+ConstDecl
+  : CONST BType ConstDefList ';' {
+    auto const_decl_ast = new ConstDeclAST();
+    const_decl_ast->btype = unique_ptr<BaseAST>($2);
+    const_decl_ast->const_def_list = unique_ptr<BaseAST>($3);
+    $$ = const_decl_ast;
+  }
+  ;
+
+ConstDefList
+  : ConstDef {
+    auto const_def_list_ast = new ConstDefListAST();
+    const_def_list_ast->const_def = unique_ptr<BaseAST>($1);
+    $$ = const_def_list_ast;
+  }
+  | ConstDefList ',' ConstDef {
+    auto const_def_list_ast = new ConstDefListAST();
+    const_def_list_ast->const_def_list = unique_ptr<BaseAST>($1);
+    const_def_list_ast->const_def = unique_ptr<BaseAST>($2);
+    $$ = const_def_list_ast;
+  }
+  ;
+
+BType
+  : INT {
+    auto btype_ast = new BTypeAST();
+    btype_ast->btype_name = "int";
+    $$ = btype_ast;
+  }
+  ;
+
+ConstDef
+  : IDENT '=' ConstInitVal {
+    auto const_def_ast = new ConstDefAST();
+    const_def_ast->ident = *unique_ptr<string>($1);
+    const_def_ast->const_init_val = unique_ptr<BaseAST>($3);
+    $$ = const_def_ast;
+  }
+  ;
+
+ConstInitVal
+  : ConstExp {
+    auto const_init_val_ast = new ConstInitValAST();
+    const_init_val_ast->const_exp = unique_ptr<BaseAST>($1);
+    $$ = const_init_val_ast;
+  }
+  ;
+
+VarDecl
+  : BType VarDefList ';' {
+    auto var_decl_ast = new VarDeclAST();
+    var_decl_ast->btype = unique_ptr<BaseAST>($1);
+    var_decl_ast->var_def_list = unique_ptr<BaseAST>($2);
+    $$ = var_decl_ast;
+  }
+  ;
+
+VarDefList
+  : VarDef {
+    auto var_def_list_ast = new VarDefListAST();
+    var_def_list_ast->var_def = unique_ptr<BaseAST>($1);
+    $$ = var_def_list_ast;
+  }
+  | VarDefList ',' VarDef {
+    auto var_def_list_ast = new VarDefListAST();
+    var_def_list_ast->var_def_list = unique_ptr<BaseAST>($1);
+    var_def_list_ast->var_def = unique_ptr<BaseAST>($2);
+    $$ = var_def_list_ast;
+  }
+  ;
+
+VarDef
+  : IDENT {
+    auto var_def_ast = new VarDefAST();
+    var_def_ast->ident = *unique_ptr<string>($1);
+    $$ = var_def_ast;
+  }
+  | IDENT '=' InitVal {
+    auto var_def_ast = new VarDefAST();
+    var_def_ast->ident = *unique_ptr<string>($1);
+    var_def_ast->init_val = unique_ptr<BaseAST>($3);
+    $$ = var_def_ast;
+  }
+  ;
+
+InitVal
+  : Exp {
+    auto init_val_ast = new InitValAST();
+    init_val_ast->exp = unique_ptr<BaseAST>($1);
+    $$ = init_val_ast;
+  }
+  ;
 // FuncDef ::= FuncType IDENT '(' ')' Block;
 // 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
 // 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回
@@ -102,20 +201,64 @@ FuncType
     $$ = funcT_ast;
   }
   ;
-
+// 实际上语法解释器不支持用大括号来表示重复出现，所以我们需要用递归来表示
 Block
-  : '{' Stmt '}' {
+  : '{' BlockItemList '}' {
     auto block_ast = new BlockAST();
     block_ast->stmt = unique_ptr<BaseAST>($2);
     $$ = block_ast;
   }
   ;
 
+BlockItemList
+  : BlockItem {
+    
+  }
+  | BlockItemList BlockItem {
+    
+  }
+  ;
+
+BlockItem
+  : Decl {
+    auto block_item_ast = new BlockItemAST();
+    block_item_ast->decl = unique_ptr<BaseAST>($1);
+    $$ = block_item_ast;
+  }
+  | Stmt {
+    auto block_item_ast = new BlockItemAST();
+    block_item_ast->stmt = unique_ptr<BaseAST>($1);
+    $$ = block_item_ast;
+  }
+  ;
+
 Stmt
-  : RETURN Exp ';' {
+  : LVal '=' Exp ';' {
+    auto stmt_ast = new StmtAST();
+    stmt_ast->lval = unique_ptr<BaseAST>($1);
+    stmt_ast->exp = unique_ptr<BaseAST>($3);
+    $$ = stmt_ast;
+  } 
+  | RETURN Exp ';' {
     auto stmt_ast = new StmtAST();
     stmt_ast->exp = unique_ptr<BaseAST>($2);
     $$ = stmt_ast;
+  }
+  ;
+
+LVal
+  : IDENT {
+    auto lval_ast = new LValAST();
+    lval_ast->ident = *unique_ptr<string>($1);
+    $$ = lval_ast;
+  }
+  ;
+
+ConstExp
+  : Exp {
+    auto const_exp_ast = new ConstExpAST();
+    const_exp_ast->exp = unique_ptr<BaseAST>($1);
+    $$ = const_exp_ast;
   }
   ;
 
@@ -142,7 +285,7 @@ LOrExp
   }
   ;
 
-  LAndExp
+LAndExp
   : EqExp {
     auto land_exp_ast = new LAndExpAST();
     land_exp_ast->eq_exp = unique_ptr<BaseAST>($1);
@@ -245,6 +388,12 @@ PrimaryExp
     auto primary_exp_ast = new PrimaryExpAST();
     primary_exp_ast->type = PrimaryExpType::expT;
     primary_exp_ast->exp = unique_ptr<BaseAST>($2);
+    $$ = primary_exp_ast;
+  }
+  | LVal {
+    auto primary_exp_ast = new PrimaryExpAST();
+    primary_exp_ast->type = PrimaryExpType::lvalT;
+    primary_exp_ast->lval = unique_ptr<BaseAST>($1);
     $$ = primary_exp_ast;
   }
   | Number {
