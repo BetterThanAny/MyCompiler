@@ -68,14 +68,81 @@ CompUnit
   }
   ;
 
+
+// FuncDef ::= FuncType IDENT '(' ')' Block;
+// 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
+// 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回
+// $$ 表示非终结符的返回值, 我们可以通过给这个符号赋值的方法来返回结果
+// 你可能会问, FuncType, IDENT 之类的结果已经是字符串指针了
+// 为什么还要用 unique_ptr 接住它们, 然后再解引用, 把它们拼成另一个字符串指针呢
+// 因为所有的字符串指针都是我们 new 出来的, new 出来的内存一定要 delete
+// 否则会发生内存泄漏, 而 unique_ptr 这种智能指针可以自动帮我们 delete
+// 虽然此处你看不出用 unique_ptr 和手动 delete 的区别, 但当我们定义了 AST 之后
+// 这种写法会省下很多内存管理的负担
+FuncDef
+  : FuncType IDENT '(' ')' Block {
+    auto funcD_ast = new FuncDefAST();
+    funcD_ast->func_type = unique_ptr<BaseAST>($1);
+    funcD_ast->ident = *unique_ptr<string>($2);
+    funcD_ast->block = unique_ptr<BaseAST>($5);
+    $$ = funcD_ast;
+  }
+  ;
+
+// 同上, 不再解释
+FuncType
+  : INT {
+    auto funcT_ast = new FuncTypeAST();
+    funcT_ast -> funcT_name = "int";
+    $$ = funcT_ast;
+  }
+  ;
+// 实际上语法解释器不支持用大括号来表示重复出现，所以我们需要用递归来表示
+Block
+  : '{' BlockItemList '}' {
+    auto block_ast = new BlockAST();
+    block_ast->stmt = unique_ptr<BaseAST>($2);
+    $$ = block_ast;
+  }
+  ;
+
+BlockItemList
+  : BlockItem {
+    auto block_item_list_ast = new BlockItemListAST();
+    block_item_list_ast->block_item = unique_ptr<BaseAST>($1);
+    $$ = block_item_list_ast;
+  }
+  | BlockItemList BlockItem {
+    auto block_item_list_ast = new BlockItemListAST();
+    block_item_list_ast->block_item_list = unique_ptr<BaseAST>($1);
+    block_item_list_ast->block_item = unique_ptr<BaseAST>($2);
+    $$ = block_item_list_ast;
+  }
+  ;
+
+BlockItem
+  : Decl {
+    auto block_item_ast = new BlockItemAST();
+    block_item_ast->decl = unique_ptr<BaseAST>($1);
+    $$ = block_item_ast;
+  }
+  | Stmt {
+    auto block_item_ast = new BlockItemAST();
+    block_item_ast->stmt = unique_ptr<BaseAST>($1);
+    $$ = block_item_ast;
+  }
+  ;
+  
 Decl
   : ConstDecl{
     auto decl_ast = new DeclAST();
+    decl_ast->type = DeclType::constT;
     decl_ast->const_decl = unique_ptr<BaseAST>($1);
     $$ = decl_ast;
   }
   | VarDecl{
     auto decl_ast = new DeclAST();
+    decl_ast->type = DeclType::varT;
     decl_ast->var_decl = unique_ptr<BaseAST>($1);
     $$ = decl_ast;
   }
@@ -171,64 +238,6 @@ InitVal
     auto init_val_ast = new InitValAST();
     init_val_ast->exp = unique_ptr<BaseAST>($1);
     $$ = init_val_ast;
-  }
-  ;
-// FuncDef ::= FuncType IDENT '(' ')' Block;
-// 我们这里可以直接写 '(' 和 ')', 因为之前在 lexer 里已经处理了单个字符的情况
-// 解析完成后, 把这些符号的结果收集起来, 然后拼成一个新的字符串, 作为结果返回
-// $$ 表示非终结符的返回值, 我们可以通过给这个符号赋值的方法来返回结果
-// 你可能会问, FuncType, IDENT 之类的结果已经是字符串指针了
-// 为什么还要用 unique_ptr 接住它们, 然后再解引用, 把它们拼成另一个字符串指针呢
-// 因为所有的字符串指针都是我们 new 出来的, new 出来的内存一定要 delete
-// 否则会发生内存泄漏, 而 unique_ptr 这种智能指针可以自动帮我们 delete
-// 虽然此处你看不出用 unique_ptr 和手动 delete 的区别, 但当我们定义了 AST 之后
-// 这种写法会省下很多内存管理的负担
-FuncDef
-  : FuncType IDENT '(' ')' Block {
-    auto funcD_ast = new FuncDefAST();
-    funcD_ast->func_type = unique_ptr<BaseAST>($1);
-    funcD_ast->ident = *unique_ptr<string>($2);
-    funcD_ast->block = unique_ptr<BaseAST>($5);
-    $$ = funcD_ast;
-  }
-  ;
-
-// 同上, 不再解释
-FuncType
-  : INT {
-    auto funcT_ast = new FuncTypeAST();
-    funcT_ast -> funcT_name = "int";
-    $$ = funcT_ast;
-  }
-  ;
-// 实际上语法解释器不支持用大括号来表示重复出现，所以我们需要用递归来表示
-Block
-  : '{' BlockItemList '}' {
-    auto block_ast = new BlockAST();
-    block_ast->stmt = unique_ptr<BaseAST>($2);
-    $$ = block_ast;
-  }
-  ;
-
-BlockItemList
-  : BlockItem {
-    
-  }
-  | BlockItemList BlockItem {
-    
-  }
-  ;
-
-BlockItem
-  : Decl {
-    auto block_item_ast = new BlockItemAST();
-    block_item_ast->decl = unique_ptr<BaseAST>($1);
-    $$ = block_item_ast;
-  }
-  | Stmt {
-    auto block_item_ast = new BlockItemAST();
-    block_item_ast->stmt = unique_ptr<BaseAST>($1);
-    $$ = block_item_ast;
   }
   ;
 

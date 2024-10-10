@@ -15,7 +15,16 @@ enum class PrimaryExpType
   numberT,
   expT
 };
-
+enum class StmtExpType
+{
+  lvalT,
+  returnT
+};
+enum class DeclExpType
+{
+  constT,
+  varT
+};
 
 class BaseAST;
 class CompUnitAST;
@@ -40,7 +49,7 @@ public:
   virtual ~BaseAST() = default;
 
   virtual void Dump() const = 0;
-  virtual std::string DumpIR() const = 0;// 输出koopa IR
+  virtual std::string DumpIR() const = 0; // 输出koopa IR
 };
 
 // CompUnit ::= FuncDef
@@ -133,6 +142,211 @@ public:
   {
     std::cout << "%entry:" << std::endl; // %e 会变蓝，\% 会变红，什么鬼？
     return stmt->DumpIR();
+  }
+};
+
+// Decl ::= ConstDecl | VarDecl
+class DeclAST : public BaseAST
+{
+public:
+  DeclExpType type;
+  std::unique_ptr<BaseAST> decl;
+  void Dump() const override
+  {
+    if (type == DeclExpType::constT)
+    {
+      std::cout << "const ";
+    }
+    else if (type == DeclExpType::varT)
+    {
+      std::cout << "var ";
+    }
+    else
+    {
+      assert(false);
+    }
+    decl->Dump();
+  }
+  std::string DumpIR() const override
+  {
+    return decl->DumpIR();
+  }
+  int32_t Value() const
+  {
+    return 0;
+  }
+};
+
+// ConstDecl ::= "const" BType ConstDef {"," ConstDef} ";"
+class ConstDeclAST : public BaseAST
+{
+public:
+  std::unique_ptr<BaseAST> btype;
+  std::vector<std::unique_ptr<BaseAST>> const_defs;
+  void Dump() const override
+  {
+    std::cout << "ConstDeclAST {";
+    btype->Dump();
+    for (auto &const_def : const_defs)
+    {
+      const_def->Dump();
+      std::cout << ", ";
+    }
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    for (auto &const_def : const_defs)
+    {
+      const_def->DumpIR();
+    }
+    return "";
+  }
+};
+
+// BType ::= "int"
+class BTypeAST : public BaseAST
+{
+public:
+  std::string btype_name;
+  void Dump() const override
+  {
+    std::cout << "BTypeAST {";
+    std::cout << btype_name;
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    if (btype_name == "int")
+      std::cout << "i32" << " ";
+    else
+      std::cout << "Not allowed" << std::endl;
+    return "";
+  }
+};
+
+// ConstDef ::= IDENT "=" ConstInitVal
+class ConstDefAST : public BaseAST
+{
+public:
+  std::string ident;
+  std::unique_ptr<BaseAST> const_init_val;
+  void Dump() const override
+  {
+    std::cout << "ConstDefAST {";
+    std::cout << ident << ", ";
+    const_init_val->Dump();
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    std::cout << "\t%" << ident << " = " << const_init_val->DumpIR() << std::endl;
+    return "";
+  }
+};
+
+// ConstInitVal ::= ConstExp
+class ConstInitValAST : public BaseAST
+{ 
+public:
+  std::unique_ptr<BaseAST> const_exp;
+  void Dump() const override
+  {
+    std::cout << "ConstInitValAST {";
+    const_exp->Dump();
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    return const_exp->DumpIR();
+  }
+};
+
+// ConstExp ::= AddExp
+class ConstExpAST : public BaseAST
+{
+public:
+  std::unique_ptr<BaseAST> add_exp;
+  void Dump() const override
+  {
+    std::cout << "ConstExpAST {";
+    add_exp->Dump();
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    return add_exp->DumpIR();
+  }
+};
+
+// VarDecl ::= BType VarDef {"," VarDef} ";"
+class VarDeclAST : public BaseAST
+{
+public:
+  std::unique_ptr<BaseAST> btype;
+  std::vector<std::unique_ptr<BaseAST>> var_defs;
+  void Dump() const override
+  {
+    std::cout << "VarDeclAST {";
+    btype->Dump();
+    for (auto &var_def : var_defs)
+    {
+      var_def->Dump();
+      std::cout << ", ";
+    }
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    for (auto &var_def : var_defs)
+    {
+      var_def->DumpIR();
+    }
+    return "";
+  }
+};
+
+// VarDef ::= IDENT | IDENT "=" InitVal
+class VarDefAST : public BaseAST
+{
+public:
+  std::string ident;
+  std::unique_ptr<BaseAST> init_val;
+  void Dump() const override
+  {
+    std::cout << "VarDefAST {";
+    std::cout << ident;
+    if (init_val != nullptr)
+    {
+      std::cout << ", ";
+      init_val->Dump();
+    }
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    if (init_val != nullptr)
+    {
+      std::cout << "\t%" << ident << " = " << init_val->DumpIR() << std::endl;
+    }
+    return "";
+  }
+};
+
+// InitVal ::= Exp
+class InitValAST : public BaseAST
+{
+public:
+  std::unique_ptr<BaseAST> exp;
+  void Dump() const override
+  {
+    std::cout << "InitValAST {";
+    exp->Dump();
+    std::cout << "}";
+  }
+  std::string DumpIR() const override
+  {
+    return exp->DumpIR();
   }
 };
 
@@ -239,22 +453,23 @@ public:
   }
   std::string DumpIR() const override
   {
-    
-   if (op == ""){ 
-            // LAndExp := EqExp
-            return eq_exp->DumpIR();
-        }
 
-        // LAndExp := LAndExp LANDOP EqExp
-        assert(op == "&&");
-        std::string landexp = land_exp->DumpIR();
-        std::string eqexp = eq_exp->DumpIR();
-        // TODO: Handle And operation (A && B is considered (A!=0) && (B!=0) here).
-        std::cout << "\t%" << tmp_symbol_num++ << " = ne " << landexp << ", 0\n";
-        std::cout << "\t%" << tmp_symbol_num++ << " = ne " << eqexp << ", 0\n";
-        std::cout << "\t%" << tmp_symbol_num << " = and %" << (tmp_symbol_num - 2) << ", %" 
-                    << (tmp_symbol_num - 1) << "\n";
-        return "%" + std::to_string(tmp_symbol_num++);
+    if (op == "")
+    {
+      // LAndExp := EqExp
+      return eq_exp->DumpIR();
+    }
+
+    // LAndExp := LAndExp LANDOP EqExp
+    assert(op == "&&");
+    std::string landexp = land_exp->DumpIR();
+    std::string eqexp = eq_exp->DumpIR();
+    // TODO: Handle And operation (A && B is considered (A!=0) && (B!=0) here).
+    std::cout << "\t%" << tmp_symbol_num++ << " = ne " << landexp << ", 0\n";
+    std::cout << "\t%" << tmp_symbol_num++ << " = ne " << eqexp << ", 0\n";
+    std::cout << "\t%" << tmp_symbol_num << " = and %" << (tmp_symbol_num - 2) << ", %"
+              << (tmp_symbol_num - 1) << "\n";
+    return "%" + std::to_string(tmp_symbol_num++);
   }
 };
 
@@ -338,34 +553,41 @@ public:
   }
   std::string DumpIR() const override
   {
-    if (op == ""){ 
-            // RelExp := AddExp
-            return add_exp->DumpIR();
-        }
-        else{
-            // RelExp := RelExp RELOP AddExp
-            std::string relexp = rel_exp->DumpIR();
-            std::string addexp = add_exp->DumpIR();
-            if (op == "<") {
-                std::cout << "\t%" << tmp_symbol_num << " = lt " << relexp << ", " 
-                          << addexp << "\n";
-            }
-            else if (op == ">"){
-                std::cout << "\t%" << tmp_symbol_num << " = gt " << relexp << ", "
-                          << addexp << "\n";
-            }
-            else if (op == "<="){
-                std::cout << "\t%" << tmp_symbol_num << " = le " << relexp << ", "
-                          << addexp << "\n";
-            }            
-            else if (op == ">="){
-                std::cout << "\t%" << tmp_symbol_num << " = ge " << relexp << ", "
-                          << addexp << "\n";
-            }            
-            else assert(false);
-            return "%" + std::to_string(tmp_symbol_num++);
-        }
-        return "";
+    if (op == "")
+    {
+      // RelExp := AddExp
+      return add_exp->DumpIR();
+    }
+    else
+    {
+      // RelExp := RelExp RELOP AddExp
+      std::string relexp = rel_exp->DumpIR();
+      std::string addexp = add_exp->DumpIR();
+      if (op == "<")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = lt " << relexp << ", "
+                  << addexp << "\n";
+      }
+      else if (op == ">")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = gt " << relexp << ", "
+                  << addexp << "\n";
+      }
+      else if (op == "<=")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = le " << relexp << ", "
+                  << addexp << "\n";
+      }
+      else if (op == ">=")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = ge " << relexp << ", "
+                  << addexp << "\n";
+      }
+      else
+        assert(false);
+      return "%" + std::to_string(tmp_symbol_num++);
+    }
+    return "";
   }
 };
 
@@ -379,40 +601,45 @@ public:
   void Dump() const override
   {
     std::cout << "AddExpAST {";
-     if (op == ""){ 
-            // AddExp := MulExp
-            mul_exp->Dump();
-        }
-        else{
-            // AddExp := AddExp AddOp MulExp
-            add_exp->Dump();
-            std::cout << op;
-            mul_exp->Dump();
-        }
+    if (op == "")
+    {
+      // AddExp := MulExp
+      mul_exp->Dump();
+    }
+    else
+    {
+      // AddExp := AddExp AddOp MulExp
+      add_exp->Dump();
+      std::cout << op;
+      mul_exp->Dump();
+    }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-     if (op == ""){ 
-            // AddExp := MulExp
-            return mul_exp->DumpIR();
-        }
-        else{
-            // AddExp := AddExp AddOp MulExp
-            std::string addexp = add_exp->DumpIR();
-            std::string mulexp = mul_exp->DumpIR();
-            if (op == "+") {
-                std::cout << "\t%" << tmp_symbol_num << " = add " << addexp << ", " <<
-                    mulexp << "\n";
-            }
-            else if (op == "-"){
-                std::cout << "\t%" << tmp_symbol_num << " = sub " << addexp << ", " <<
-                    mulexp << "\n";
-            }
-            else assert(false);
-            return "%" + std::to_string(tmp_symbol_num++);
-        }
-        return "";
+    if (op == "")
+    {
+      // AddExp := MulExp
+      return mul_exp->DumpIR();
+    }
+    else
+    {
+      // AddExp := AddExp AddOp MulExp
+      std::string addexp = add_exp->DumpIR();
+      std::string mulexp = mul_exp->DumpIR();
+      if (op == "+")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = add " << addexp << ", " << mulexp << "\n";
+      }
+      else if (op == "-")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = sub " << addexp << ", " << mulexp << "\n";
+      }
+      else
+        assert(false);
+      return "%" + std::to_string(tmp_symbol_num++);
+    }
+    return "";
   }
 };
 
@@ -426,44 +653,49 @@ public:
   void Dump() const override
   {
     std::cout << "MulExpAST {";
-     if (op == ""){ 
-            // MulExp := UnaryExp
-            unary_exp->Dump();
-        }
-        else{
-            // MulExp := MulExp MulOp UnaryExp
-            mul_exp->Dump();
-            std::cout << op;
-            unary_exp->Dump();
-        }
+    if (op == "")
+    {
+      // MulExp := UnaryExp
+      unary_exp->Dump();
+    }
+    else
+    {
+      // MulExp := MulExp MulOp UnaryExp
+      mul_exp->Dump();
+      std::cout << op;
+      unary_exp->Dump();
+    }
     std::cout << "}";
   }
   std::string DumpIR() const override
   {
-     if (op == ""){ 
-            // MulExp := UnaryExp
-            return unary_exp->DumpIR();
-        }
-        else{
-            // MulExp := MulExp MulOp UnaryExp
-            std::string mulexp = mul_exp->DumpIR();
-            std::string unaryexp = unary_exp->DumpIR();
-            if (op == "*") {
-                std::cout << "\t%" << tmp_symbol_num << " = mul " << mulexp << ", " <<
-                    unaryexp << "\n";
-            }
-            else if (op == "/"){
-                std::cout << "\t%" << tmp_symbol_num << " = div " << mulexp << ", " <<
-                    unaryexp << "\n";
-            }
-            else if (op == "%"){
-                std::cout << "\t%" << tmp_symbol_num << " = mod " << mulexp << ", " <<
-                    unaryexp << "\n";
-            }
-            else assert(false);
-            return "%" + std::to_string(tmp_symbol_num++);
-        }
-        return "";
+    if (op == "")
+    {
+      // MulExp := UnaryExp
+      return unary_exp->DumpIR();
+    }
+    else
+    {
+      // MulExp := MulExp MulOp UnaryExp
+      std::string mulexp = mul_exp->DumpIR();
+      std::string unaryexp = unary_exp->DumpIR();
+      if (op == "*")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = mul " << mulexp << ", " << unaryexp << "\n";
+      }
+      else if (op == "/")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = div " << mulexp << ", " << unaryexp << "\n";
+      }
+      else if (op == "%")
+      {
+        std::cout << "\t%" << tmp_symbol_num << " = mod " << mulexp << ", " << unaryexp << "\n";
+      }
+      else
+        assert(false);
+      return "%" + std::to_string(tmp_symbol_num++);
+    }
+    return "";
   }
 };
 
